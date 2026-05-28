@@ -1,51 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./App.css";
 
-function Header() {
-  return (
-    <>
-      <h1>Task Tracker</h1>
-      <p>Add and manage your tasks for the week.</p>
-    </>
-  );
-}
-
-function TaskForm({ newTask, setNewTask, addTask }) {
-  return (
-    <div>
-      <input
-        type="text"
-        placeholder="Enter a new task"
-        value={newTask}
-        onChange={(event) => setNewTask(event.target.value)}
-      />
-      <button onClick={addTask}>Add Task</button>
-    </div>
-  );
-}
-
-function TaskList({ tasks, toggleComplete, deleteTask }) {
-  if (tasks.length === 0) {
-    return <p>No tasks yet. Add one above!</p>;
-  }
-
-  return (
-    <ul>
-      {tasks.map((task) => (
-        <li key={task.id} className={task.completed ? "completed" : ""}>
-          <span onClick={() => toggleComplete(task.id)}>{task.text}</span>
-          <button onClick={() => deleteTask(task.id)}>Delete</button>
-        </li>
-      ))}
-    </ul>
-  );
-}
+import Navbar from "./components/Navbar";
+import Dashboard from "./pages/Dashboard";
+import Active from "./pages/Active";
+import Completed from "./pages/Completed";
+import About from "./pages/About";
 
 function App() {
   const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState("");
+  const [priority, setPriority] = useState("Low");
 
-  const completedTasks = tasks.filter((task) => task.completed).length;
+  useEffect(() => {
+    document.title = `Tasks: ${tasks.length}`;
+  }, [tasks]);
 
   function addTask() {
     if (newTask.trim() === "") {
@@ -56,10 +26,12 @@ function App() {
       id: Date.now(),
       text: newTask,
       completed: false,
+      priority: priority
     };
 
     setTasks([...tasks, task]);
     setNewTask("");
+    setPriority("Low");
   }
 
   function deleteTask(id) {
@@ -67,32 +39,72 @@ function App() {
   }
 
   function toggleComplete(id) {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      )
-    );
+    const updatedTasks = tasks.map((task) => {
+      if (task.id === id) {
+        return {
+          ...task,
+          completed: !task.completed
+        };
+      }
+
+      return task;
+    });
+
+    setTasks(updatedTasks);
+  }
+
+  function clearCompleted() {
+    setTasks(tasks.filter((task) => !task.completed));
   }
 
   return (
-    <div className="container">
-      <Header />
+    <BrowserRouter>
+      <Navbar />
 
-      <TaskForm
-        newTask={newTask}
-        setNewTask={setNewTask}
-        addTask={addTask}
-      />
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <Dashboard
+              tasks={tasks}
+              newTask={newTask}
+              setNewTask={setNewTask}
+              priority={priority}
+              setPriority={setPriority}
+              addTask={addTask}
+              deleteTask={deleteTask}
+              toggleComplete={toggleComplete}
+              clearCompleted={clearCompleted}
+            />
+          }
+        />
 
-      <p>Total Tasks: {tasks.length}</p>
-      <p>Completed Tasks: {completedTasks}</p>
+        <Route
+          path="/active"
+          element={
+            <Active
+              tasks={tasks}
+              toggleComplete={toggleComplete}
+              deleteTask={deleteTask}
+            />
+          }
+        />
 
-      <TaskList
-        tasks={tasks}
-        toggleComplete={toggleComplete}
-        deleteTask={deleteTask}
-      />
-    </div>
+        <Route
+          path="/completed"
+          element={
+            <Completed
+              tasks={tasks}
+              toggleComplete={toggleComplete}
+              deleteTask={deleteTask}
+              clearCompleted={clearCompleted}
+            />
+          }
+        />
+
+        <Route path="/about" element={<About />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
